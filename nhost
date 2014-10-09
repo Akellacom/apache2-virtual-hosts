@@ -1,0 +1,53 @@
+#!/bin/bash
+
+echo -n "Введите имя пользователя для нового хоста: "
+read newUser
+
+echo -n "Введите имя создаваемого хоста: "
+read newHost
+
+echo "Создаю пользователя $newUser"
+adduser $newUser
+
+path=/home/${newUser}
+
+echo "Делаю новую запись в hosts"
+file="/etc/hosts"
+b=$(cat $file)
+newContent="127.0.0.1 ${newHost}"$'\n'"127.0.0.1 www.${newHost}"$'\n'$b
+sudo bash -c "echo '${newContent}' > $file"
+
+echo "Добавляем сайт в sites-available"
+sap=/etc/apache2/sites-available/$newHost.conf
+sudo touch $sap
+sudo chmod 777 $sap
+directives="
+<VirtualHost *:80>
+	ServerName ${newHost}
+	ServerAlias ${newHost} www.${newHost}
+	DocumentRoot ${path}/public_html
+	<Directory ${path:1}/>
+		AllowOverride All
+		Require all granted
+	</Directory>
+	ErrorLog /home/${newUser}/logs/error.log
+    CustomLog /home/${newUser}/logs/access.log combined
+</VirtualHost>"
+
+echo "$directives" > $sap
+
+echo "Созднаю нужные папки"
+mkdir ${path}/public_html
+mkdir ${path}/logs
+chmod 0777 ${path}/logs
+
+touch ${path}/index.html
+
+echo "Включаю виртуальный хост"
+sudo a2ensite $newHost
+
+echo "Включаю mod rewrite"
+sudo a2enmod rewrite
+
+echo "Перезагружаю сервер"
+sudo /etc/init.d/apache2 restart
