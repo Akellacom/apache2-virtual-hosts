@@ -1,23 +1,25 @@
 #!/bin/bash
+# Roman Frank, 2014
+# 2akellaw@gmail.com
 
-echo -n "Введите имя пользователя для нового хоста: "
+echo -n "Enter name user for new host: "
 read newUser
 
-echo -n "Введите имя создаваемого хоста: "
+echo -n "Enter name create host: "
 read newHost
 
-echo "Создаю пользователя $newUser"
+#Create user $newUser
 adduser $newUser
 
 path=/home/${newUser}
 
-echo "Делаю новую запись в hosts"
+echo "New entry in hosts"
 file="/etc/hosts"
 b=$(cat $file)
 newContent="127.0.0.1 ${newHost}"$'\n'"127.0.0.1 www.${newHost}"$'\n'$b
 sudo bash -c "echo '${newContent}' > $file"
 
-echo "Добавляем сайт в sites-available"
+echo "Creating a file in sites-available"
 sap=/etc/apache2/sites-available/$newHost.conf
 sudo touch $sap
 sudo chmod 777 $sap
@@ -36,18 +38,18 @@ directives="
 
 echo "$directives" > $sap
 
-echo "Создаю нужные папки"
+echo "Create folders"
 mkdir ${path}/public_html
 mkdir ${path}/logs
 chmod 0777 ${path}/logs
 
 touch ${path}/public_html/index.html
 
-echo "Включаю виртуальный хост"
+#Enable virtual host
 sudo a2ensite $newHost
 
-echo "Включаю mod rewrite"
+#Enable mod rewrite"
 sudo a2enmod rewrite
 
-echo "Перезагружаю сервер"
+#Reboot apache
 sudo /etc/init.d/apache2 restart
